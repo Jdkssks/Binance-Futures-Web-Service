@@ -6,7 +6,8 @@ import pandas_ta as ta
 app = Flask(__name__)
 
 def get_signal(symbol):
-    url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=100"
+    # Futures K線
+    url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval=1h&limit=100"
     data = requests.get(url).json()
     df = pd.DataFrame(data, columns=[
         "timestamp","open","high","low","close","volume",
@@ -23,6 +24,11 @@ def get_signal(symbol):
     ema50 = ta.ema(df["close"], length=50).iloc[-1]
     atr = ta.atr(df["high"].astype(float), df["low"].astype(float), df["close"], length=14).iloc[-1]
 
+    # 資金費率
+    fr_url = f"https://fapi.binance.com/fapi/v1/fundingRate?symbol={symbol}&limit=1"
+    fr_data = requests.get(fr_url).json()
+    funding_rate = float(fr_data[0]["fundingRate"]) if fr_data else None
+
     # 簡單判斷
     signal = "看漲" if ema20 > ema50 and rsi < 70 else "看跌" if ema20 < ema50 and rsi > 30 else "中性"
 
@@ -33,12 +39,13 @@ def get_signal(symbol):
         "EMA50": round(ema50, 2),
         "Volume": round(df["volume"].iloc[-1], 2),
         "ATR": round(atr, 2),
+        "FundingRate": round(funding_rate, 6) if funding_rate is not None else "N/A",
         "Signal": signal
     }
 
 @app.route("/")
 def index():
-    # 抓取所有 Binance Futures 標的
+    # 抓取所有 Futures 標的
     url = "https://fapi.binance.com/fapi/v1/exchangeInfo"
     data = requests.get(url).json()
     symbols = [s["symbol"] for s in data["symbols"]]
