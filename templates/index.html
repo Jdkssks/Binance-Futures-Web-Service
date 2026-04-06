@@ -15,8 +15,13 @@
 <body>
     <h2>幣安期貨技術指標查詢</h2>
 
-    <!-- 搜尋框 -->
-    <input type="text" id="searchBox" placeholder="輸入標的，例如 ETHUSDT">
+    <!-- 搜尋框 + autocomplete -->
+    <input list="symbols" id="searchBox" placeholder="輸入或選擇標的">
+    <datalist id="symbols">
+        {% for s in symbols %}
+            <option value="{{ s }}">
+        {% endfor %}
+    </datalist>
     <button onclick="querySignal()">查詢</button>
 
     <!-- 查詢結果 -->
@@ -26,7 +31,7 @@
         function querySignal() {
             const symbol = document.getElementById("searchBox").value.trim().toUpperCase();
             if (!symbol) {
-                alert("請輸入標的名稱，例如 BTCUSDT");
+                alert("請輸入或選擇標的，例如 BTCUSDT");
                 return;
             }
             fetch(`/signal?symbol=${symbol}`)
