@@ -38,7 +38,11 @@ def get_signal(symbol):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    # 抓取所有 Binance Futures 標的
+    url = "https://fapi.binance.com/fapi/v1/exchangeInfo"
+    data = requests.get(url).json()
+    symbols = [s["symbol"] for s in data["symbols"]]
+    return render_template("index.html", symbols=symbols)
 
 @app.route("/signal")
 def signal():
