@@ -45,7 +45,7 @@ def get_signal(symbol, interval="1h"):
         "ATR": "<0.001" if atr < 0.001 else round(atr, 4),
         "FundingRate": f"{round(funding_rate*100, 4)}%" if funding_rate is not None else "N/A",
         "Signal": signal,
-        "Klines": df[["timestamp","open","high","low","close"]].tail(50).to_dict(orient="records")
+        "Klines": df[["timestamp","open","high","low","close","volume"]].tail(50).to_dict(orient="records")
     }
 
 @app.route("/")
