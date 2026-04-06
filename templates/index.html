@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>幣安期貨技術指標查詢</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background:#121212; color:#e0e0e0; margin:20px; }
+        body { font-family: Arial, sans-serif; background:#121212; color:#e0e0e0; margin:20px; }
         h2 { text-align:center; color:#ffcc00; }
         .controls { display:flex; justify-content:center; gap:10px; margin-bottom:15px; }
         input, select, button { padding:8px; border-radius:4px; border:none; }
@@ -16,7 +14,6 @@
         th, td { border:1px solid #444; padding:8px; text-align:center; }
         th { background:#333; }
         #chartContainer { width:100%; margin-top:20px; }
-        canvas { background:#1e1e1e; margin-bottom:20px; }
     </style>
 </head>
 <body>
@@ -40,13 +37,10 @@
     </div>
 
     <div id="result"></div>
-    <div id="chartContainer">
-        <canvas id="priceChart"></canvas>
-        <canvas id="volumeChart"></canvas>
-    </div>
+    <div id="chartContainer"></div>
 
     <script>
-        let chartPrice, chartVolume, refreshTimer;
+        let refreshTimer;
 
         function querySignal() {
             const symbol = document.getElementById("searchBox").value.trim().toUpperCase();
@@ -68,127 +62,54 @@
                     html += "</table>";
                     document.getElementById("result").innerHTML = html;
 
-                    // K 線資料
-                    const klines = data.Klines.map(k => ({
-                        x: new Date(k.timestamp),
-                        o: k.open,
-                        h: k.high,
-                        l: k.low,
-                        c: k.close,
-                        v: k.volume
-                    }));
+                    // K 線 + 成交量
+                    const klines = data.Klines;
+                    const traceCandle = {
+                        x: klines.map(k => new Date(k.timestamp)),
+                        open: klines.map(k => k.open),
+                        high: klines.map(k => k.high),
+                        low: klines.map(k => k.low),
+                        close: klines.map(k => k.close),
+                        type: 'candlestick',
+                        name: symbol,
+                        increasing: {line: {color: 'green'}},
+                        decreasing: {line: {color: 'red'}}
+                    };
 
-                    // 更新或建立 K 線圖
-                    if (chartPrice) {
-                        chartPrice.data.datasets[0].data = klines;
-                        chartPrice.update();
-                    } else {
-                        const ctxPrice = document.getElementById("priceChart").getContext("2d");
-                        chartPrice = new Chart(ctxPrice, {
-                            type: 'candlestick',
-                            data: { datasets: [{ label: symbol, data: klines }] },
-                            options: {
-                                responsive: true,
-                                plugins: { legend: { display: false } },
-                                scales: { x: { type: 'time', time: { unit: 'minute' } } }
-                            }
-                        });
-                    }
+                    const traceVolume = {
+                        x: klines.map(k => new Date(k.timestamp)),
+                        y: klines.map(k => k.volume),
+                        type: 'bar',
+                        name: 'Volume',
+                        marker: {color: 'rgba(200,200,200,0.5)'},
+                        yaxis: 'y2'
+                    };
 
-                    // 更新或建立成交量圖
-                    const volumeBars = klines.map(k => ({
-                        x: k.x,
-                        y: k.v,
-                        backgroundColor: k.c > k.o ? 'rgba(0,200,0,0.6)' : 'rgba(200,0,0,0.6)'
-                    }));
+                    const layout = {
+                        grid: {rows: 2, columns: 1, pattern: 'independent'},
+                        roworder: 'top to bottom',
+                        paper_bgcolor: '#121212',
+                        plot_bgcolor: '#121212',
+                        font: {color: '#e0e0e0'},
+                        xaxis: {rangeslider: {visible: false}},
+                        yaxis: {title: 'Price'},
+                        yaxis2: {title: 'Volume'}
+                    };
 
-                    if (chartVolume) {
-                        chartVolume.data.datasets[0].data = volumeBars;
-                        chartVolume.update();
-                    } else {
-                        const ctxVolume = document.getElementById("volumeChart").getContext("2d");
-                        chartVolume = new Chart(ctxVolume, {
-                            type: 'bar',
-                            data: { datasets: [{ label: "Volume", data: volumeBars }] },
-                            options: {
-                                responsive: true,
-                                plugins: { legend: { display: false } },
-                                scales: { x: { type: 'time', time: { unit: 'minute' } }, y: { beginAtZero: true } }
-                            }
-                        });
-                    }
+                    Plotly.newPlot('chartContainer', [traceCandle, traceVolume], layout);
                 })
                 .catch(err => {
-                    document.getElementById("result").innerHTML = `<p style="color:red;">錯誤：${好的，這裡給你一份 **完整的 Flask + 前端程式碼**，圖表改成「標準 K 線 + 成交量柱狀圖」，更直觀好懂。  
+                    document.getElementById("result").innerHTML = `<p style="color:red;">錯誤：${err.message}</p>`;
+                });
+        }
 
----
-
-### `app.py`
-
-```python
-from flask import Flask, request, jsonify, render_template
-import requests
-import pandas as pd
-import pandas_ta as ta
-
-app = Flask(__name__)
-
-def get_signal(symbol, interval="1h"):
-    # Futures K線
-    url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
-    data = requests.get(url).json()
-    df = pd.DataFrame(data, columns=[
-        "timestamp","open","high","low","close","volume",
-        "close_time","quote_asset_volume","trades",
-        "taker_buy_base","taker_buy_quote","ignore"
-    ])
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-    df["open"] = df["open"].astype(float)
-    df["high"] = df["high"].astype(float)
-    df["low"] = df["low"].astype(float)
-    df["close"] = df["close"].astype(float)
-    df["volume"] = df["volume"].astype(float)
-
-    # 技術指標
-    rsi = ta.rsi(df["close"], length=14).iloc[-1]
-    macd = ta.macd(df["close"]).iloc[-1].tolist()
-    ema20 = ta.ema(df["close"], length=20).iloc[-1]
-    ema50 = ta.ema(df["close"], length=50).iloc[-1]
-    atr = ta.atr(df["high"], df["low"], df["close"], length=14).iloc[-1]
-
-    # 資金費率
-    fr_url = f"https://fapi.binance.com/fapi/v1/fundingRate?symbol={symbol}&limit=1"
-    fr_data = requests.get(fr_url).json()
-    funding_rate = float(fr_data[0]["fundingRate"]) if fr_data else None
-
-    # 簡單判斷
-    signal = "看漲" if ema20 > ema50 and rsi < 70 else "看跌" if ema20 < ema50 and rsi > 30 else "中性"
-
-    return {
-        "RSI": round(rsi, 2),
-        "MACD": [round(x, 2) for x in macd],
-        "EMA20": round(ema20, 4),
-        "EMA50": round(ema50, 4),
-        "Volume": round(df["volume"].iloc[-1], 2),
-        "ATR": "<0.001" if atr < 0.001 else round(atr, 4),
-        "FundingRate": f"{round(funding_rate*100, 4)}%" if funding_rate is not None else "N/A",
-        "Signal": signal,
-        "Klines": df[["timestamp","open","high","low","close","volume"]].tail(50).to_dict(orient="records")
-    }
-
-@app.route("/")
-def index():
-    # 抓取所有 Futures 標的
-    url = "https://fapi.binance.com/fapi/v1/exchangeInfo"
-    data = requests.get(url).json()
-    symbols = [s["symbol"] for s in data["symbols"]]
-    return render_template("index.html", symbols=symbols)
-
-@app.route("/signal")
-def signal():
-    symbol = request.args.get("symbol", "BTCUSDT")
-    interval = request.args.get("interval", "1h")
-    return jsonify(get_signal(symbol, interval))
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+        document.getElementById("autoRefresh").addEventListener("change", function() {
+            if (this.checked) {
+                refreshTimer = setInterval(querySignal, 30000);
+            } else {
+                clearInterval(refreshTimer);
+            }
+        });
+    </script>
+</body>
+</html>
