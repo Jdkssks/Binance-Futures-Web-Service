@@ -2,5 +2,5 @@ flask==3.0.2
 requests==2.31.0
 pandas==2.2.2
 pandas_ta==0.4.71b0
-numpy==1.26.4
+numpy>=2.2.6
 gunicorn==21.2.0
