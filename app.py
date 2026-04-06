@@ -5,8 +5,7 @@ import pandas_ta as ta
 
 app = Flask(__name__)
 
-def get_signal(symbol, interval="1h"):
-    # Futures K線
+def get_signal(symbol="BTCUSDT", interval="1h"):
     url = f"https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval={interval}&limit=100"
     data = requests.get(url).json()
     df = pd.DataFrame(data, columns=[
@@ -33,7 +32,6 @@ def get_signal(symbol, interval="1h"):
     fr_data = requests.get(fr_url).json()
     funding_rate = float(fr_data[0]["fundingRate"]) if fr_data else None
 
-    # 簡單判斷
     signal = "看漲" if ema20 > ema50 and rsi < 70 else "看跌" if ema20 < ema50 and rsi > 30 else "中性"
 
     return {
@@ -50,7 +48,6 @@ def get_signal(symbol, interval="1h"):
 
 @app.route("/")
 def index():
-    # 抓取所有 Futures 標的
     url = "https://fapi.binance.com/fapi/v1/exchangeInfo"
     data = requests.get(url).json()
     symbols = [s["symbol"] for s in data["symbols"]]
