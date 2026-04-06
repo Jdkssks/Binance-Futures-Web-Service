@@ -5,6 +5,8 @@
     <title>幣安期貨技術指標查詢</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+    <!-- 日期 adapter -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         #searchBox, #interval { padding: 5px; margin-right: 10px; }
@@ -64,7 +66,7 @@
                     html += "</table>";
                     document.getElementById("result").innerHTML = html;
 
-                    // 畫 K 線圖
+                    // K 線資料
                     const klines = data.Klines.map(k => ({
                         x: new Date(k.timestamp),
                         o: k.open,
@@ -73,17 +75,22 @@
                         c: k.close
                     }));
 
-                    if (chart) chart.destroy();
-                    const ctx = document.getElementById("priceChart").getContext("2d");
-                    chart = new Chart(ctx, {
-                        type: 'candlestick',
-                        data: { datasets: [{ label: symbol, data: klines }] },
-                        options: {
-                            responsive: true,
-                            plugins: { legend: { display: false } },
-                            scales: { x: { type: 'time', time: { unit: 'minute' } } }
-                        }
-                    });
+                    // 如果 chart 已存在 → 更新資料
+                    if (chart) {
+                        chart.data.datasets[0].data = klines;
+                        chart.update();
+                    } else {
+                        const ctx = document.getElementById("priceChart").getContext("2d");
+                        chart = new Chart(ctx, {
+                            type: 'candlestick',
+                            data: { datasets: [{ label: symbol, data: klines }] },
+                            options: {
+                                responsive: true,
+                                plugins: { legend: { display: false } },
+                                scales: { x: { type: 'time', time: { unit: 'minute' } } }
+                            }
+                        });
+                    }
                 })
                 .catch(err => {
                     document.getElementById("result").innerHTML = `<p style="color:red;">錯誤：${err.message}</p>`;
