@@ -5,8 +5,7 @@
     <title>幣安期貨技術指標查詢</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        #searchBox { margin-bottom: 10px; padding: 5px; width: 250px; }
-        #symbolSelect { padding: 5px; width: 250px; }
+        #searchBox { padding: 5px; width: 250px; }
         button { padding: 5px 10px; margin-left: 10px; }
         table { border-collapse: collapse; margin-top: 20px; width: 100%; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
@@ -17,38 +16,24 @@
     <h2>幣安期貨技術指標查詢</h2>
 
     <!-- 搜尋框 -->
-    <input type="text" id="searchBox" placeholder="搜尋標的...">
-
-    <!-- 下拉選單 -->
-    <select id="symbolSelect" name="symbol">
-        {% for s in symbols %}
-            <option value="{{ s }}">{{ s }}</option>
-        {% endfor %}
-    </select>
-
+    <input type="text" id="searchBox" placeholder="輸入標的，例如 ETHUSDT">
     <button onclick="querySignal()">查詢</button>
 
     <!-- 查詢結果 -->
     <div id="result"></div>
 
     <script>
-        // 搜尋功能：輸入文字篩選下拉選單
-        const searchBox = document.getElementById("searchBox");
-        const select = document.getElementById("symbolSelect");
-
-        searchBox.addEventListener("keyup", function() {
-            const filter = searchBox.value.toUpperCase();
-            for (let i = 0; i < select.options.length; i++) {
-                const txt = select.options[i].text.toUpperCase();
-                select.options[i].style.display = txt.includes(filter) ? "" : "none";
-            }
-        });
-
-        // 查詢 API
         function querySignal() {
-            const symbol = select.value;
+            const symbol = document.getElementById("searchBox").value.trim().toUpperCase();
+            if (!symbol) {
+                alert("請輸入標的名稱，例如 BTCUSDT");
+                return;
+            }
             fetch(`/signal?symbol=${symbol}`)
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error("查詢失敗");
+                    return res.json();
+                })
                 .then(data => {
                     let html = "<h3>查詢結果</h3><table><tr><th>指標</th><th>數值</th></tr>";
                     for (const key in data) {
@@ -56,6 +41,9 @@
                     }
                     html += "</table>";
                     document.getElementById("result").innerHTML = html;
+                })
+                .catch(err => {
+                    document.getElementById("result").innerHTML = `<p style="color:red;">錯誤：${err.message}</p>`;
                 });
         }
     </script>
