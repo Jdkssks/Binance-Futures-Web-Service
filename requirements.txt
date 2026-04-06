@@ -1,5 +1,6 @@
-flask
-requests
-pandas
-pandas_ta
-gunicorn
+flask==3.0.2
+requests==2.31.0
+pandas==2.2.2
+pandas_ta==0.3.14b0
+numpy==1.26.4
+gunicorn==21.2.0
