@@ -32,6 +32,7 @@
         <option value="1d">1d</option>
     </select>
     <button onclick="querySignal()">查詢</button>
+    <label><input type="checkbox" id="autoRefresh"> 自動刷新 (30秒)</label>
 
     <!-- 查詢結果 -->
     <div id="result"></div>
@@ -41,6 +42,7 @@
 
     <script>
         let chart;
+        let refreshTimer;
 
         function querySignal() {
             const symbol = document.getElementById("searchBox").value.trim().toUpperCase();
@@ -87,6 +89,15 @@
                     document.getElementById("result").innerHTML = `<p style="color:red;">錯誤：${err.message}</p>`;
                 });
         }
+
+        // 自動刷新功能
+        document.getElementById("autoRefresh").addEventListener("change", function() {
+            if (this.checked) {
+                refreshTimer = setInterval(querySignal, 30000); // 每30秒刷新
+            } else {
+                clearInterval(refreshTimer);
+            }
+        });
     </script>
 </body>
 </html>
